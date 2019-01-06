@@ -1,0 +1,146 @@
+<div class="layui-card">
+    <div class="layui-card-header">
+        <h2 class="header-title">客户管理</h2>
+        <span class="layui-breadcrumb pull-right">
+          <a href="#!console">首页</a>
+          <a><cite>客户管理</cite></a>
+        </span>
+    </div>
+    <div class="layui-card-body">
+        <!-- 搜索条件 -->
+        <div class="layui-form toolbar">
+            <form id="searchForm" onsubmit="return false;">
+                客户名：<input name="name" class="layui-input search-input" type="text" placeholder="输入客户名"/>&emsp;
+                身份证号：<input name="identifier" class="layui-input search-input" type="text" placeholder="输入身份证号"/>&emsp;
+                地址：<input name="address" class="layui-input search-input" type="text" placeholder="输入地址"/>&emsp;
+                联系方式：<input name="mobile" class="layui-input search-input" type="text" placeholder="输入联系方式"/>
+            </select>
+                <button id="customer-btn-search" class="layui-btn icon-btn"><i class="layui-icon">&#xe615;</i>搜索</button>
+            </form>
+        </div>
+        <!-- 表格顶部操作列 -->
+        <script type="text/html" id="customer-toolbar">
+            <div class="layui-btn-container">
+                {{# if({{addShow}} == true){ }}
+                <button class="layui-btn layui-btn-normal layui-btn-sm" lay-event="add"><i
+                        class="layui-icon">&#xe654;</i>添加
+                </button>
+                {{# } }}
+            </div>
+        </script>
+        <table class="layui-table" id="customer-table" lay-filter="customer-table"></table>
+    </div>
+</div>
+
+<!-- 表格操作列 -->
+<script type="text/html" id="customer-table-bar">
+    {{#  if({{editShow}} == true){ }}
+    <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="edit">修改</a>
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="delete">删除</a>
+    {{#  } }}
+</script>
+
+<!--&lt;!&ndash; 表格状态列 &ndash;&gt;-->
+<!--<script type="text/html" id="customer-tpl-status">-->
+    <!--<input type="checkbox" lay-filter="customer-tpl-status" value="{{d.id}}" lay-skin="switch"-->
+           <!--lay-text="正常|禁用" {{d.status==0?'checked':''}}/>-->
+<!--</script>-->
+
+<script>
+    layui.use(['form', 'table', 'config', 'crown'], function () {
+        var form = layui.form;
+        var table = layui.table;
+        var config = layui.config;
+        var layer = layui.layer;
+        var crown = layui.crown;
+        $('#customer-toolbar').vm({
+            addShow: crown.hasPerm("sys:customer:add")
+        });
+        $('#customer-table-bar').vm({
+            editShow: crown.hasPerm("sys:customer:edit")
+//            resetPwdShow: crown.hasPerm("sys:customer:resetpwd")
+        });
+        // 渲染表格
+        var customerTable = table.render({
+            elem: '#customer-table',
+            toolbar: '#customer-toolbar',
+            url: config.serverUrl + '/customers',
+            request: config.request,
+            parseData: config.parseData,
+            response: config.response,
+            headers: {Authorization: config.getToken()},
+            page: true,
+            cols: [[
+//                {field: 'id', width: 60, title: 'ID'},
+                {field: 'name', align: 'center', sort: true, title: '姓名'},
+                {field: 'sex', align: 'center', sort: true, title: '性别'},
+                {field: 'address', align: 'center', sort: true, title: '地址'},
+                {field: 'identifier', align: 'center', sort: true, title: '身份证号'},
+                {field: 'mobile', align: 'center', sort: true, title: '联系方式'},
+                {align: 'center', toolbar: '#customer-table-bar', title: '操作'}
+            ]]
+        });
+        // 表格顶部操作列
+        table.on('toolbar(customer-table)', function (obj) {
+            if (obj.event === 'add') {
+                showEditModel();
+            }
+        });
+        // 表格操作列事件
+        table.on('tool(customer-table)', function (obj) {
+            var data = obj.data;
+            var layEvent = obj.event;
+
+            if (layEvent === 'edit') {
+                // 修改
+                showEditModel(data);
+            } else if (layEvent === 'delete') {
+                //todo:删除客户
+//                layer.confirm('确定删除此客户？', function (i) {
+//                    layer.close(i);
+//                    layer.load(2);
+//                    crown.put('/customers/' + obj.data.id + '/password', {}, function () {
+//                        layer.closeAll('loading');
+//                        layer.msg('重置密码成功', {icon: 1});
+//                    });
+//                });
+                layer.confirm('确定删除此客户？', function () {
+                    crown.get('/customers/delete/' + data.id,{async:false}, function () {
+                        layer.msg('客户删除成功',{icon:1});
+                    })
+                })
+            }
+        });
+
+        //显示表单弹窗
+        var showEditModel = function (data) {
+            if (data) {
+                crown.get('/customers/' + data.id, {async:false}, function (data) {
+                    crown.putTempData('t_customer', data.result);
+                });
+            }
+            crown.popupCenter({
+                title: data ? '修改客户' : '添加客户',
+                path: 'components/views/customers/customer/form.html',
+                finish: function () {
+                    customerTable.reload('customer-table', {});
+                }
+            });
+        };
+
+        // 搜索按钮点击事件
+        $('#customer-btn-search').click(function () {
+            customerTable.reload({where: crown.getSearchForm()});
+        });
+
+//        // 修改customer状态
+//        form.on('switch(customer-tpl-status)', function (obj) {
+//            layer.load(2);
+//            crown.put('/customers/' + obj.elem.value + '/status',
+//                {data: {status: obj.elem.checked ? 0 : 1}}, function () {
+//                    layer.closeAll('loading');
+//                    layer.msg('客户状态更新成功', {icon: 1});
+//                });
+//        });
+    });
+</script>

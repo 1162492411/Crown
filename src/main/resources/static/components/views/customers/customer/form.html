@@ -1,0 +1,123 @@
+<!-- customer表单弹窗 -->
+<form id="customer-form" lay-filter="customer-form" class="layui-form model-form">
+    <input name="id" type="hidden"/>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">姓名</label>
+        <div class="layui-input-block">
+            <input id="name" name="name" placeholder="请输入姓名" type="text" class="layui-input" maxlength="20" lay-verify="required"/>
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">性别</label>
+        <div class="layui-input-block">
+            <select name="sexIds" xm-select="sexIds" lay-verify="required">
+            </select>
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">地址</label>
+        <div class="layui-input-block">
+            <input name="address" placeholder="请输入地址" type="text" class="layui-input" lay-verify="address"/>
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">身份证号</label>
+        <div class="layui-input-block">
+            <input name="identifier" placeholder="请输入身份证号" type="text" class="layui-input" lay-verify="identifier"/>
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">手机</label>
+        <div class="layui-input-block">
+            <input name="mobile" placeholder="请输入手机" type="text" class="layui-input" maxlength="20" lay-verify="mobile"/>
+        </div>
+    </div>
+
+    <div class="layui-form-item model-form-footer">
+        <button class="layui-btn layui-btn-primary close" type="button">取消</button>
+        <button class="layui-btn" lay-filter="customer-form-submit" lay-submit>保存</button>
+    </div>
+
+</form>
+
+<script>
+    layui.use(['layer', 'crown', 'form', 'formSelects'], function () {
+        var layer = layui.layer;
+        var crown = layui.crown;
+        var form = layui.form;
+        var $ = layui.jquery;
+        var formSelects = layui.formSelects;
+        //自定义验证
+        form.verify({
+            mobile : [/^1[3|4|5|7|8]\d{9}$/, '手机必须11位，只能是数字！'],
+            identifier : [/(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/, '请输入15或18位的身份证号']
+        });
+
+        // 获取所有角色
+        layer.load(2);
+//        crown.get('/roles/roles', {}, function (data) {
+//            // 渲染多选下拉框
+//            var roleSelectData = new Array();
+//            for (var i = 0; i < data.result.length; i++) {
+//                roleSelectData.push({name: data.result[i].roleName, value: data.result[i].id});
+//            }
+//            formSelects.data('sexIds', 'local', {arr: roleSelectData});
+//            // 回显customer数据
+//            var customer = crown.getTempData('t_customer');
+//            if (customer) {
+//                form.val('customer-form', customer);
+//                $("#name").attr("readonly", "readonly");
+//                var rds = new Array();
+//                for (var i = 0; i < customer.sexIds.length; i++) {
+//                    rds.push(customer.sexIds[i]);
+//                }
+//                formSelects.value('sexIds', rds);
+//            }
+//            layer.closeAll('loading');
+//        });
+
+        var sexData = new Array();
+        sexData.push({name:'男', value:1});
+        sexData.push({name:'女', value:2});
+        formSelects.data('sexIds','local',{arr:sexData});
+
+        //回显数据
+        var customer = crown.getTempData('t_customer');
+        if(customer){
+            form.val('customer-form', customer);
+            $("#name").attr("readonly", "readonly");
+            formSelects.value('sexIds', customer.sex);
+        }
+        layer.closeAll('loading');
+
+        // 表单提交事件
+        form.on('submit(customer-form-submit)', function (data) {
+            layer.load(2);
+            //定义一数组
+            var sexIds = new Array();
+            if (data.field.sexIds) {
+                sexIds = data.field.sexIds.split(",");
+            }
+            data.field.sexIds = sexIds;
+            if (data.field.id) {
+                crown.put('/customers/' + data.field.id, {data: data.field}, function () {
+                    layer.closeAll('loading');
+                    layer.msg('修改成功', {icon: 1});
+                    crown.finishPopupCenter();
+                });
+            } else {
+                crown.post('/customers', {data:data.field}, function () {
+                    layer.closeAll('loading');
+                    layer.msg('添加成功', {icon: 1});
+                    crown.finishPopupCenter();
+                });
+            }
+            return false;
+        });
+    });
+</script>
